@@ -4,12 +4,11 @@
   "description": "Nexus Autonomous Traffic Engine",
   "main": "index.js",
   "dependencies": {
-    "playwright-stealth": "^2.0.1",
-    "playwright": "^1.40.0",
-    "express": "^4.18.2"
+    "playwright-stealth": "2.0.1",
+    "playwright": "1.40.0",
+    "express": "4.18.2"
   },
   "scripts": {
     "start": "node index.js"
   }
 }
-
