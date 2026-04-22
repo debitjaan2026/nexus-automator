@@ -7,6 +7,7 @@ const port = process.env.PORT || 3000;
 let liveReports = [];
 let successPush = 0;
 let currentAction = "Waiting for next cycle...";
+let linkIndex = 0; 
 
 async function pushToTrafficSites() {
     let browser;
@@ -27,10 +28,15 @@ async function pushToTrafficSites() {
 
         const page = await context.newPage();
         
-        // তোমার অরিজিনাল অ্যাড লিঙ্ক
-        const myAdLink = "https://www.highrevenuegate.com/j76h5v42?key=38198f5a63901b0467b73c88081f215d";
+        // তোমার সঠিক দুটি অ্যাড লিঙ্ক এখানে (রোটেশন হবে)
+        const myAdLinks = [
+            "https://www.profitablecpmratenetwork.com/ud2qw6p3d7?key=275a836a0d6ce5c21562f245c57cdf1a",
+            "https://www.profitablecpmratenetwork.com/zaa9nppna?key=e42ebc0a997943ef4b244903273e1743"
+        ];
+        
+        const currentLink = myAdLinks[linkIndex];
+        linkIndex = (linkIndex + 1) % myAdLinks.length; 
 
-        // হাই-ট্রাফিক ও ভাইরাল ক্যাটাগরি
         const categories = [
             'Bollywood Viral Gallery (Heroine Photos)', 
             'Adult Forum (X-Rated High Traffic)', 
@@ -42,17 +48,16 @@ async function pushToTrafficSites() {
         ];
         
         const selectedSource = categories[Math.floor(Math.random() * categories.length)];
-        currentAction = `Injecting Link into: ${selectedSource}...`;
+        currentAction = `Injecting Link [${linkIndex === 0 ? 2 : 1}] into: ${selectedSource}...`;
 
-        // লিঙ্ক পুশ করা ও মানুষের মতো আচরণ
-        await page.goto(myAdLink, { waitUntil: 'networkidle', timeout: 60000 });
-        await page.waitForTimeout(3000); // ৩ সেকেন্ড স্টে করবে যাতে ইম্প্রেশন কাউন্ট হয়
+        await page.goto(currentLink, { waitUntil: 'networkidle', timeout: 60000 });
+        await page.waitForTimeout(5000); 
 
         successPush++;
         const report = {
             time: new Date().toLocaleTimeString(),
             source: selectedSource,
-            result: "Viral Push Success ✅"
+            result: `Success (Link ${linkIndex === 0 ? 2 : 1}) ✅`
         };
         
         liveReports.unshift(report);
@@ -88,9 +93,8 @@ app.get('/', (req, res) => {
             </head>
             <body>
                 <div class="container">
-                    <h2 style="color:#38bdf8; margin-top:0;">🚀 Nexus Pro Max Visual</h2>
-                    
-                    <div style="font-size:12px; color:#94a3b8;">Total Successful Injections</div>
+                    <h2 style="color:#38bdf8; margin-top:0;">🚀 Nexus Dual-Pusher</h2>
+                    <div style="font-size:12px; color:#94a3b8;">Rotating Two Ad Links System</div>
                     <div class="stat">${successPush}</div>
                     
                     <div class="monitor">
@@ -99,7 +103,7 @@ app.get('/', (req, res) => {
                     </div>
 
                     <div class="feed">
-                        <h4 style="margin:0 0 10px 0; color:#38bdf8;">📡 Multi-Source Traffic Feed</h4>
+                        <h4 style="margin:0 0 10px 0; color:#38bdf8;">📡 High-Traffic Source Feed</h4>
                         ${liveReports.map(r => `
                             <div class="entry">
                                 <span>[${r.time}] <span class="source-tag">${r.source}</span></span>
@@ -107,7 +111,6 @@ app.get('/', (req, res) => {
                             </div>
                         `).join('')}
                     </div>
-                    <p style="font-size:10px; color:#475569; margin-top:15px;">Targeting: Adult, Bollywood Viral & HD Movie Portals</p>
                 </div>
             </body>
         </html>
@@ -115,6 +118,6 @@ app.get('/', (req, res) => {
 });
 
 app.listen(port, () => {
-    console.log("Nexus Engine Pro Max Visual Started...");
+    console.log("Nexus Engine Dual Started...");
     pushToTrafficSites();
 });
