@@ -1,14 +1,14 @@
 {
   "name": "nexus-vortex-pro",
   "version": "1.0.0",
-  "description": "Nexus Autonomous Traffic Engine",
+  "description": "Automated traffic bot",
   "main": "index.js",
-  "dependencies": {
-    "playwright-stealth": "latest",
-    "playwright": "latest",
-    "express": "latest"
-  },
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "render-postbuild": "npx playwright install chromium"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "playwright": "^1.40.0"
   }
 }
