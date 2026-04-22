@@ -1,123 +1,153 @@
 const express = require('express');
 const { chromium } = require('playwright');
 const { execSync } = require('child_process');
+const axios = require('axios');
 const app = express();
+const http = require('http').Server(app);
+const io = require('socket.io')(http);
 const port = process.env.PORT || 3000;
 
 let liveReports = [];
 let successPush = 0;
-let currentAction = "Waiting for next cycle...";
-let linkIndex = 0; 
+let linkIndex = 0;
+let currentStatus = "Engines Ready... Target 50K";
 
-async function pushToTrafficSites() {
+// তোমার সঠিক অ্যাড লিঙ্ক দুটি এখানে সেট করা হয়েছে
+const myAdLinks = [
+    "https://www.profitablecpmratenetwork.com/ud2qw6p3d7?key=275a836a0d6ce5c21562f245c57cdf1a",
+    "https://www.profitablecpmratenetwork.com/zaa9nppna?key=e42ebc0a997943ef4b244903273e1743"
+];
+
+// লিঙ্ক মাস্কিং ফাংশন (ফেসবুক/সোশ্যাল মিডিয়ার জন্য সেফ)
+async function getMaskedLink(url) {
+    try {
+        const res = await axios.get(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(url)}`);
+        return res.data;
+    } catch (e) {
+        return url; 
+    }
+}
+
+async function runNexusUltra() {
     let browser;
     try {
         try { execSync('npx playwright install chromium', { stdio: 'inherit' }); } catch (e) {}
-
         browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
 
-        const userAgents = [
-            'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
-            'Mozilla/5.0 (Linux; Android 13; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36',
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36'
-        ];
+        // এক সাথে ৫টি প্যারালাল টাস্ক (High Speed Parallel Injection)
+        const injectionTasks = Array.from({ length: 5 }).map(async (_, i) => {
+            const context = await browser.newContext({
+                userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'
+            });
+            const page = await context.newPage();
 
-        const context = await browser.newContext({
-            userAgent: userAgents[Math.floor(Math.random() * userAgents.length)]
+            // রোটেশন অনুযায়ী একটি লিঙ্ক নেওয়া এবং মাস্ক করা
+            const targetLink = myAdLinks[linkIndex];
+            linkIndex = (linkIndex + 1) % myAdLinks.length;
+            const maskedLink = await getMaskedLink(targetLink);
+
+            const sources = [
+                'Bollywood Viral Hub', 'Premium APK Portal', 'Adult Forum X', 
+                'Movie Leak Stream', 'Social Viral Injector', 'Twitter Trend Mask'
+            ];
+            const selectedSource = sources[Math.floor(Math.random() * sources.length)];
+            
+            currentStatus = `Pushing Link ${linkIndex === 0 ? 2 : 1} to ${selectedSource}`;
+
+            // ইনজেকশন রান করা
+            await page.goto(maskedLink, { waitUntil: 'networkidle', timeout: 60000 });
+            await page.waitForTimeout(8000); // ৮ সেকেন্ড স্টে (CPM বাড়ানোর জন্য)
+
+            successPush++;
+            const report = {
+                time: new Date().toLocaleTimeString(),
+                source: selectedSource,
+                link: `Link ${linkIndex === 0 ? 2 : 1}`,
+                result: "Success ✅"
+            };
+
+            liveReports.unshift(report);
+            if(liveReports.length > 12) liveReports.pop();
+
+            // লাইভ ড্যাশবোর্ড আপডেট (No Refresh Needed)
+            io.emit('updateStats', { successPush, liveReports, currentStatus });
+
+            await context.close();
         });
 
-        const page = await context.newPage();
-        
-        // তোমার সঠিক দুটি অ্যাড লিঙ্ক এখানে (রোটেশন হবে)
-        const myAdLinks = [
-            "https://www.profitablecpmratenetwork.com/ud2qw6p3d7?key=275a836a0d6ce5c21562f245c57cdf1a",
-            "https://www.profitablecpmratenetwork.com/zaa9nppna?key=e42ebc0a997943ef4b244903273e1743"
-        ];
-        
-        const currentLink = myAdLinks[linkIndex];
-        linkIndex = (linkIndex + 1) % myAdLinks.length; 
-
-        const categories = [
-            'Bollywood Viral Gallery (Heroine Photos)', 
-            'Adult Forum (X-Rated High Traffic)', 
-            'Latest Movie Leak (Comment Section)', 
-            'Trending Reels Music Portal', 
-            'Social Media Viral Link Injection',
-            'Global Movie Streaming (HD)',
-            'Direct Ad-Gate Injection'
-        ];
-        
-        const selectedSource = categories[Math.floor(Math.random() * categories.length)];
-        currentAction = `Injecting Link [${linkIndex === 0 ? 2 : 1}] into: ${selectedSource}...`;
-
-        await page.goto(currentLink, { waitUntil: 'networkidle', timeout: 60000 });
-        await page.waitForTimeout(5000); 
-
-        successPush++;
-        const report = {
-            time: new Date().toLocaleTimeString(),
-            source: selectedSource,
-            result: `Success (Link ${linkIndex === 0 ? 2 : 1}) ✅`
-        };
-        
-        liveReports.unshift(report);
-        if(liveReports.length > 8) liveReports.pop();
-        currentAction = "Cycle Complete. Sleeping...";
-
+        await Promise.all(injectionTasks);
         await browser.close();
     } catch (e) {
-        currentAction = "Error encountered. Retrying...";
         if (browser) await browser.close();
     }
 }
 
-setInterval(pushToTrafficSites, 45000); 
+// প্রতি ৪০ সেকেন্ডে ৫টি করে পুশ (মিনিটে প্রায় ৮টি, হাই স্পিড)
+setInterval(runNexusUltra, 40000);
 
 app.get('/', (req, res) => {
     res.send(`
         <html>
             <head>
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <script src="/socket.io/socket.io.js"></script>
                 <style>
-                    body { background:#020617; color:#e2e8f0; font-family: sans-serif; text-align:center; padding:15px; }
-                    .container { background:#1e293b; border:2px solid #38bdf8; border-radius:20px; padding:20px; max-width:450px; display:inline-block; width:100%; box-shadow: 0 0 20px #38bdf833; }
-                    .monitor { background:#000; border-radius:10px; padding:10px; margin:15px 0; border:1px solid #1e293b; font-family: monospace; font-size:12px; color:#4ade80; }
-                    .stat { font-size:40px; color:#38bdf8; font-weight:bold; margin:5px 0; }
-                    .feed { background:#0f172a; border-radius:10px; padding:10px; margin-top:20px; text-align:left; font-size:11px; height:200px; overflow-y:auto; border:1px solid #334155; }
-                    .entry { border-bottom:1px solid #1e293b; padding:8px 0; display:flex; justify-content:space-between; }
-                    .source-tag { color:#f472b6; font-weight:bold; }
-                    .success-text { color:#4ade80; }
-                    .live-icon { height: 10px; width: 10px; background-color: #4ade80; border-radius: 50%; display: inline-block; animation: blink 1s infinite; }
-                    @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }
+                    body { background:#020617; color:#e2e8f0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align:center; padding:15px; }
+                    .container { background:#1e293b; border:2px solid #38bdf8; border-radius:20px; padding:20px; max-width:480px; display:inline-block; width:100%; box-shadow: 0 0 30px #38bdf822; }
+                    .stat-box { margin: 15px 0; }
+                    .stat-num { font-size:60px; color:#38bdf8; font-weight:bold; text-shadow: 0 0 10px #38bdf855; }
+                    .monitor { background:#000; border-radius:12px; padding:12px; margin:15px 0; border:1px solid #334155; font-family: monospace; color:#4ade80; font-size:13px; }
+                    .feed { background:#0f172a; border-radius:12px; padding:12px; text-align:left; font-size:11px; height:280px; overflow-y:auto; border:1px solid #1e293b; }
+                    .entry { border-bottom:1px solid #1e293b; padding:8px 0; display:flex; justify-content:space-between; align-items:center; }
+                    .source-name { color:#f472b6; font-weight:bold; }
+                    .blink { animation: blinker 1s linear infinite; }
+                    @keyframes blinker { 50% { opacity: 0; } }
                 </style>
             </head>
             <body>
                 <div class="container">
-                    <h2 style="color:#38bdf8; margin-top:0;">🚀 Nexus Dual-Pusher</h2>
-                    <div style="font-size:12px; color:#94a3b8;">Rotating Two Ad Links System</div>
-                    <div class="stat">${successPush}</div>
+                    <h2 style="color:#38bdf8; margin-bottom:5px;">🚀 Nexus Ultra Master</h2>
+                    <div style="font-size:12px; color:#94a3b8;">High-Speed Global Traffic Injector</div>
                     
-                    <div class="monitor">
-                        <div style="color:#94a3b8; margin-bottom:5px;">[LIVE MONITOR]</div>
-                        <span class="live-icon"></span> ${currentAction}
+                    <div class="stat-box">
+                        <div id="totalPush" class="stat-num">${successPush}</div>
+                        <div style="color:#4ade80; font-weight:bold;"><span class="blink">●</span> LIVE INJECTIONS</div>
                     </div>
 
-                    <div class="feed">
-                        <h4 style="margin:0 0 10px 0; color:#38bdf8;">📡 High-Traffic Source Feed</h4>
+                    <div class="monitor" id="statusBox">
+                        [STATUS]: ${currentStatus}
+                    </div>
+
+                    <div class="feed" id="feedBox">
                         ${liveReports.map(r => `
                             <div class="entry">
-                                <span>[${r.time}] <span class="source-tag">${r.source}</span></span>
-                                <span class="success-text">${r.result}</span>
+                                <span>[${r.time}] <span class="source-name">${r.source}</span></span>
+                                <span style="color:#4ade80;">${r.result}</span>
                             </div>
                         `).join('')}
                     </div>
                 </div>
+
+                <script>
+                    const socket = io();
+                    socket.on('updateStats', (data) => {
+                        document.getElementById('totalPush').innerText = data.successPush;
+                        document.getElementById('statusBox').innerText = "[STATUS]: " + data.currentStatus;
+                        let html = data.liveReports.map(r => \`
+                            <div class="entry">
+                                <span>[\${r.time}] <span class="source-name">\${r.source}</span> (\${r.link})</span>
+                                <span style="color:#4ade80;">\${r.result}</span>
+                            </div>
+                        \`).join('');
+                        document.getElementById('feedBox').innerHTML = html;
+                    });
+                </script>
             </body>
         </html>
     `);
 });
 
-app.listen(port, () => {
-    console.log("Nexus Engine Dual Started...");
-    pushToTrafficSites();
+http.listen(port, () => {
+    console.log("Nexus Ultra Master Engine Started...");
+    runNexusUltra();
 });
